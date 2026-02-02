@@ -1,0 +1,141 @@
+{
+  "project_name": "Globaltech Biometric Attendance System",
+  "project_description": "A production-ready biometric sign-in/sign-out and visitor management system for Globaltech Tech School. The system uses a web application (Next.js + TypeScript) connected to Supabase for authentication and data storage, and integrates with an external local fingerprint service that runs on a desktop machine to handle fingerprint enrollment and verification.",
+  "tech_stack": {
+    "frontend": "Next.js (TypeScript)",
+    "backend": "Node.js with API routes (Next.js)",
+    "database": "Supabase (PostgreSQL)",
+    "authentication": "Supabase Auth (email + password)",
+    "deployment": "Vercel",
+    "biometric_integration": "External local fingerprint service communicating via HTTP REST API"
+  },
+  "system_architecture": {
+    "description": "The web application runs on Vercel and handles UI, authentication, attendance logic, and reporting. A separate local desktop fingerprint service (Windows-based) interfaces with the fingerprint SDK and exposes REST endpoints to the web app for fingerprint enrollment and verification.",
+    "components": [
+      "Next.js web application",
+      "Supabase database and auth",
+      "Local fingerprint service (HTTP API)",
+      "Fingerprint hardware SDK"
+    ]
+  },
+  "fingerprint_service_spec": {
+    "runs_locally": true,
+    "responsibility": [
+      "Capture fingerprint",
+      "Generate fingerprint template",
+      "Verify fingerprint against stored templates"
+    ],
+    "api_endpoints": {
+      "POST /fingerprint/enroll": "Enrolls a new fingerprint and returns a fingerprint_template_id",
+      "POST /fingerprint/verify": "Verifies fingerprint and returns matched fingerprint_template_id or null"
+    },
+    "security_notes": [
+      "Never store raw fingerprint images",
+      "Only store fingerprint templates or SDK identifiers",
+      "All communication must be over HTTPS or secure local network"
+    ]
+  },
+  "roles_and_permissions": {
+    "roles": ["admin"],
+    "admin_permissions": [
+      "Register users",
+      "Configure sign-in/sign-out behavior",
+      "View attendance logs",
+      "Export reports",
+      "Manual override for sign-in/sign-out",
+      "Manage system settings"
+    ]
+  },
+  "attendance_logic": {
+    "default_behavior": "auto-toggle",
+    "auto_toggle_rules": [
+      "If last action is SIGN_OUT, next scan is SIGN_IN",
+      "If last action is SIGN_IN, next scan is SIGN_OUT"
+    ],
+    "admin_configurable": true,
+    "manual_override": true
+  },
+  "database_schema": {
+    "tables": {
+      "admins": {
+        "id": "uuid",
+        "email": "text",
+        "created_at": "timestamp"
+      },
+      "users": {
+        "id": "uuid",
+        "full_name": "text",
+        "category": "text",
+        "created_at": "timestamp"
+      },
+      "fingerprints": {
+        "id": "uuid",
+        "user_id": "uuid",
+        "fingerprint_template_id": "text",
+        "created_at": "timestamp"
+      },
+      "attendance_logs": {
+        "id": "uuid",
+        "user_id": "uuid",
+        "action": "SIGN_IN | SIGN_OUT",
+        "timestamp": "timestamp",
+        "source": "fingerprint | manual"
+      },
+      "system_settings": {
+        "id": "uuid",
+        "auto_toggle_enabled": "boolean",
+        "updated_at": "timestamp"
+      }
+    }
+  },
+  "api_routes": {
+    "/api/fingerprint/verify": "Receives fingerprint_template_id from local service and processes attendance logic",
+    "/api/fingerprint/register": "Registers a new user and links fingerprint template",
+    "/api/attendance/logs": "Fetch attendance records with filters",
+    "/api/reports/export": "Export attendance reports as CSV or Excel"
+  },
+  "frontend_pages": [
+    "Admin login",
+    "Dashboard (today’s attendance, totals)",
+    "User registration page",
+    "Live sign-in/sign-out screen",
+    "Attendance logs",
+    "Analytics and charts",
+    "System settings",
+    "Export reports"
+  ],
+  "analytics_features": [
+    "Daily attendance count",
+    "Weekly and monthly summaries",
+    "Most active users",
+    "Average time spent in school"
+  ],
+  "export_features": {
+    "formats": ["CSV", "Excel"],
+    "filters": [
+      "Date range",
+      "User",
+      "Action type"
+    ]
+  },
+  "security_requirements": [
+    "Use Supabase Row Level Security (RLS)",
+    "Admin-only access to all protected routes",
+    "Environment variables for secrets",
+    "Audit logs for manual overrides"
+  ],
+  "development_guidelines": [
+    "Use TypeScript strictly",
+    "Follow clean architecture principles",
+    "Write reusable services for Supabase access",
+    "Handle edge cases like duplicate scans",
+    "Gracefully handle fingerprint service downtime"
+  ],
+  "deliverables": [
+    "Fully working Next.js web app",
+    "Supabase schema and policies",
+    "API routes for fingerprint and attendance",
+    "Admin dashboard UI",
+    "Documentation explaining setup and fingerprint service integration"
+  ]
+}
