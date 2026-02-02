@@ -1,6 +1,10 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, ClipboardList, Settings, Fingerprint } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, Settings, Fingerprint, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const items = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -12,46 +16,92 @@ const items = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="w-64 h-screen bg-card border-r border-border flex flex-col sticky top-0 left-0 shadow-xl z-20">
-      <div className="p-6 border-b border-border/50">
+    <div className={cn(
+      "h-screen bg-sidebar border-r border-sidebar-border flex flex-col sticky top-0 left-0 shadow-xl z-20 transition-all duration-300",
+      collapsed ? "w-20" : "w-64"
+    )}>
+      <div className="p-4 border-b border-sidebar-border/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground">
-            <Fingerprint className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-secondary-foreground flex-shrink-0">
+            <Fingerprint className="w-6 h-6" />
           </div>
-          <div>
-            <h1 className="font-display font-bold text-lg leading-tight tracking-tight">Globaltech</h1>
-            <p className="text-xs text-muted-foreground font-medium">Biometric System</p>
-          </div>
+          {!collapsed && (
+            <div className="overflow-hidden">
+              <h1 className="font-display font-bold text-lg leading-tight tracking-tight text-sidebar-foreground">Globaltech</h1>
+              <p className="text-xs text-sidebar-foreground/70 font-medium">Biometric System</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-3 py-6 space-y-1">
         {items.map((item) => {
           const isActive = location === item.href;
           const Icon = item.icon;
 
-          return (
+          const linkContent = (
             <Link key={item.href} href={item.href} className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group font-medium text-sm",
+              "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group font-medium text-sm",
+              collapsed && "justify-center px-0",
               isActive 
-                ? "bg-primary/10 text-primary shadow-sm" 
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:pl-5"
-            )}>
-              <Icon className={cn("w-5 h-5 transition-colors", isActive ? "text-primary" : "text-muted-foreground/70 group-hover:text-foreground")} />
-              {item.label}
+                ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            )}
+            data-testid={`nav-${item.href.replace("/", "") || "dashboard"}`}
+            >
+              <Icon className={cn(
+                "w-5 h-5 flex-shrink-0 transition-colors", 
+                isActive ? "text-secondary" : "text-sidebar-foreground/60 group-hover:text-sidebar-foreground"
+              )} />
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           );
+
+          if (collapsed) {
+            return (
+              <Tooltip key={item.href} delayDuration={0}>
+                <TooltipTrigger asChild>
+                  {linkContent}
+                </TooltipTrigger>
+                <TooltipContent side="right" className="font-medium">
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return linkContent;
         })}
       </nav>
 
-      <div className="p-4 m-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border border-primary/10">
-        <p className="text-xs text-primary/80 font-semibold mb-1">System Status</p>
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs text-muted-foreground font-medium">Online & Active</span>
+      {!collapsed && (
+        <div className="p-3 mx-3 mb-3 bg-sidebar-accent/30 rounded-xl border border-sidebar-border/50">
+          <p className="text-xs text-secondary font-semibold mb-1">System Status</p>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs text-sidebar-foreground/70 font-medium">Online & Active</span>
+          </div>
         </div>
+      )}
+
+      <div className={cn(
+        "p-3 border-t border-sidebar-border/50 flex items-center",
+        collapsed ? "justify-center" : "justify-between"
+      )}>
+        {!collapsed && <ThemeToggle />}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-sidebar-foreground hover:bg-sidebar-accent rounded-full"
+          data-testid="button-collapse-sidebar"
+        >
+          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        </Button>
+        {collapsed && <ThemeToggle />}
       </div>
     </div>
   );
