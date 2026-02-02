@@ -13,24 +13,28 @@ interface StatsCardProps {
 export function StatsCard({ title, value, icon: Icon, trend, trendUp, className }: StatsCardProps) {
   return (
     <div className={cn(
-      "bg-card rounded-2xl p-6 border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 card-hover group",
+      "bg-card rounded-xl p-5 border border-border/60 hover:border-border transition-all duration-200",
       className
     )}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-3 rounded-xl bg-primary/5 group-hover:bg-primary/10 transition-colors text-primary">
-          <Icon className="w-6 h-6" />
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">{title}</p>
+          <p className="text-2xl font-semibold text-foreground">{value}</p>
         </div>
-        {trend && (
-          <span className={cn(
-            "text-xs font-bold px-2 py-1 rounded-full",
-            trendUp ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-          )}>
-            {trend}
-          </span>
-        )}
+        <div className="p-2.5 rounded-lg bg-muted/50 text-muted-foreground">
+          <Icon className="w-5 h-5" />
+        </div>
       </div>
-      <h3 className="text-muted-foreground text-sm font-medium tracking-wide">{title}</h3>
-      <p className="text-3xl font-bold font-display mt-1 text-foreground">{value}</p>
+      {trend && (
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <span className={cn(
+            "text-xs font-medium",
+            trendUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          )}>
+            {trend} from yesterday
+          </span>
+        </div>
+      )}
     </div>
   );
 }
