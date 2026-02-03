@@ -1,16 +1,25 @@
 import { db } from "./db";
 import {
-  users, fingerprints, attendanceLogs, systemSettings,
+  users, fingerprints, attendanceLogs, systemSettings, adminUsers,
   type User, type InsertUser,
   type Fingerprint, type InsertFingerprint,
   type AttendanceLog, type InsertAttendanceLog,
   type SystemSettings, type InsertSystemSettings,
-  type AttendanceStats
+  type AttendanceStats,
+  type AdminUser, type InsertAdminUser, type RegisterInput
 } from "@shared/schema";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { subDays } from "date-fns";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
+  // Auth
+  createAdminUser(user: RegisterInput): Promise<Omit<AdminUser, 'password'>>;
+  getAdminUserByUsername(username: string): Promise<AdminUser | undefined>;
+  getAdminUserByEmail(email: string): Promise<AdminUser | undefined>;
+  getAdminUserById(id: number): Promise<Omit<AdminUser, 'password'> | undefined>;
+  verifyAdminPassword(username: string, password: string): Promise<Omit<AdminUser, 'password'> | null>;
+
   // Users
   getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
@@ -33,6 +42,49 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Authentication Methods
+  async createAdminUser(user: RegisterInput): Promise<Omit<AdminUser, 'password'>> {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
+    const [newUser] = await db.insert(adminUsers).values({
+      username: user.username,
+      email: user.email,
+      password: hashedPassword,
+      fullName: user.fullName,
+      role: 'admin'
+    }).returning();
+    
+    const { password, ...userWithoutPassword } = newUser;
+    return userWithoutPassword;
+  }
+
+  async getAdminUserByUsername(username: string): Promise<AdminUser | undefined> {
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.username, username));
+    return user;
+  }
+
+  async getAdminUserByEmail(email: string): Promise<AdminUser | undefined> {
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
+    return user;
+  }
+
+  async getAdminUserById(id: number): Promise<Omit<AdminUser, 'password'> | undefined> {
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
+    if (!user) return undefined;
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  async verifyAdminPassword(username: string, password: string): Promise<Omit<AdminUser, 'password'> | null> {
+    const user = await this.getAdminUserByUsername(username);
+    if (!user) return null;
+    
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return null;
+    
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
   async getUsers(): Promise<User[]> {
     return await db.select().from(users).orderBy(desc(users.createdAt));
   }
@@ -87,20 +139,16 @@ export class DatabaseStorage implements IStorage {
       endOfDay.setHours(23, 59, 59, 999);
       
       conditions.push(
-        and(
-          gte(attendanceLogs.timestamp, startOfDay),
-          lte(attendanceLogs.timestamp, endOfDay)
-        )
+        gte(attendanceLogs.timestamp, startOfDay) as any,
+        lte(attendanceLogs.timestamp, endOfDay) as any
       );
     }
 
     if (conditions.length > 0) {
-      // @ts-ignore
-      query = query.where(and(...conditions));
+      query = query.where(and(...conditions) as any) as any;
     }
 
-    // @ts-ignore
-    return await query;
+    return await query as any;
   }
 
   async getLastAttendanceLog(userId: number): Promise<AttendanceLog | undefined> {

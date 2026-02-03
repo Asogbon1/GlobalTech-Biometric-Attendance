@@ -12,9 +12,11 @@ export default function AttendancePage() {
 
   const handleExport = () => {
     // Mock export functionality
+    if (!logs || logs.length === 0) return;
+    
     const csvContent = "data:text/csv;charset=utf-8," 
       + "User,Category,Action,Time,Source\n"
-      + logs?.map(log => 
+      + logs.map(log => 
         `${log.user.fullName},${log.user.category},${log.action},${log.timestamp},${log.source}`
       ).join("\n");
     

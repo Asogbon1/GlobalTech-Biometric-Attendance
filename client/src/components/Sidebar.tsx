@@ -1,10 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Users, ClipboardList, Settings, Fingerprint, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, Settings, Fingerprint, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLogout, useAuth } from "@/hooks/use-auth";
 
 const items = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -17,6 +18,8 @@ const items = [
 export function Sidebar() {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const logout = useLogout();
+  const { data: user } = useAuth();
 
   return (
     <div className={cn(
@@ -24,17 +27,39 @@ export function Sidebar() {
       collapsed ? "w-16" : "w-56"
     )}>
       <div className="p-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground flex-shrink-0">
-            <Fingerprint className="w-4 h-4" />
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <h1 className="font-semibold text-sm leading-tight text-foreground">Globaltech</h1>
-              <p className="text-[10px] text-muted-foreground">Attendance</p>
+        <div className={cn(
+          "flex items-center gap-3",
+          collapsed && "flex-col"
+        )}>
+          {!collapsed ? (
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1">
+                  <div className="w-7 h-7 rounded-full border-2 border-primary flex items-center justify-center">
+                    <Fingerprint className="w-4 h-4 text-primary" />
+                  </div>
+                  <span className="font-bold text-lg">
+                    <span className="text-foreground">Global</span>
+                    <span className="text-primary">TECH</span>
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground pl-8">WORLD COMPUTER INSTITUTE</p>
+              </div>
+            </div>
+          ) : (
+            <div className="w-10 h-10 rounded-full border-2 border-primary flex items-center justify-center flex-shrink-0">
+              <Fingerprint className="w-5 h-5 text-primary" />
             </div>
           )}
+          {!collapsed && <ThemeToggle />}
+          {collapsed && <ThemeToggle />}
         </div>
+        {!collapsed && user && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-xs text-muted-foreground">Logged in as</p>
+            <p className="text-sm font-medium text-foreground truncate">{user.fullName}</p>
+          </div>
+        )}
       </div>
 
       <nav className="flex-1 p-2 space-y-1">
@@ -75,19 +100,53 @@ export function Sidebar() {
       </nav>
 
       <div className={cn(
-        "p-2 border-t border-border flex items-center gap-1",
-        collapsed ? "flex-col" : "justify-between"
+        "p-2 border-t border-border space-y-2",
+        collapsed && "flex flex-col"
       )}>
-        <ThemeToggle />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          data-testid="button-collapse-sidebar"
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+        {!collapsed && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+            className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </Button>
+        )}
+        <div className={cn(
+          "flex items-center",
+          collapsed ? "justify-center" : "justify-end"
+        )}>
+          {collapsed && (
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => logout.mutate()}
+                  disabled={logout.isPending}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                Logout
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            data-testid="button-collapse-sidebar"
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
     </div>
   );

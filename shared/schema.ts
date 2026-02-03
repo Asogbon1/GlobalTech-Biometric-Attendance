@@ -4,6 +4,17 @@ import { z } from "zod";
 
 // === TABLE DEFINITIONS ===
 
+// Admin Users (for login/authentication)
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(), // hashed password
+  fullName: text("full_name").notNull(),
+  role: text("role").notNull().default("admin"), // 'admin' | 'super_admin'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Users (Students/Staff)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -39,12 +50,33 @@ export const systemSettings = pgTable("system_settings", {
 
 // === SCHEMAS ===
 
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true });
+export const loginSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+export const registerSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
+  fullName: z.string().min(2, "Full name is required"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertFingerprintSchema = createInsertSchema(fingerprints).omit({ id: true, createdAt: true });
 export const insertAttendanceLogSchema = createInsertSchema(attendanceLogs).omit({ id: true, timestamp: true });
 export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({ id: true, updatedAt: true });
 
 // === TYPES ===
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;

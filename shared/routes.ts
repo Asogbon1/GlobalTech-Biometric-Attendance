@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertFingerprintSchema, insertAttendanceLogSchema, insertSystemSettingsSchema, users, fingerprints, attendanceLogs, systemSettings } from './schema';
+import { insertUserSchema, insertFingerprintSchema, insertAttendanceLogSchema, insertSystemSettingsSchema, users, fingerprints, attendanceLogs, systemSettings, adminUsers, loginSchema, registerSchema } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -15,6 +15,47 @@ export const errorSchemas = {
 };
 
 export const api = {
+  auth: {
+    register: {
+      method: 'POST' as const,
+      path: '/api/auth/register',
+      input: registerSchema,
+      responses: {
+        201: z.object({
+          user: z.custom<Omit<typeof adminUsers.$inferSelect, 'password'>>(),
+          message: z.string(),
+        }),
+        400: errorSchemas.validation,
+      },
+    },
+    login: {
+      method: 'POST' as const,
+      path: '/api/auth/login',
+      input: loginSchema,
+      responses: {
+        200: z.object({
+          user: z.custom<Omit<typeof adminUsers.$inferSelect, 'password'>>(),
+          message: z.string(),
+        }),
+        401: z.object({ message: z.string() }),
+      },
+    },
+    logout: {
+      method: 'POST' as const,
+      path: '/api/auth/logout',
+      responses: {
+        200: z.object({ message: z.string() }),
+      },
+    },
+    me: {
+      method: 'GET' as const,
+      path: '/api/auth/me',
+      responses: {
+        200: z.custom<Omit<typeof adminUsers.$inferSelect, 'password'>>(),
+        401: z.object({ message: z.string() }),
+      },
+    },
+  },
   users: {
     list: {
       method: 'GET' as const,
