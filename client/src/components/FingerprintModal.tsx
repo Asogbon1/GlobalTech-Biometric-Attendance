@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useRegisterFingerprint } from "@/hooks/use-fingerprints";
-import { Fingerprint, Loader2 } from "lucide-react";
+import { Fingerprint, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { type User } from "@shared/schema";
+import { registerFingerprint, isBiometricSupported, bufferToBase64 } from "@/lib/webauthn";
+import { useToast } from "@/hooks/use-toast";
 
 interface FingerprintModalProps {
   user: User | null;
@@ -14,20 +14,70 @@ interface FingerprintModalProps {
 }
 
 export function FingerprintModal({ user, open, onOpenChange }: FingerprintModalProps) {
-  const [templateId, setTemplateId] = useState("");
-  const registerFingerprint = useRegisterFingerprint();
+  const [isScanning, setIsScanning] = useState(false);
+  const [status, setStatus] = useState<"idle" | "scanning" | "success" | "error">("idle");
+  const registerFingerprintMutation = useRegisterFingerprint();
+  const { toast } = useToast();
 
-  const handleRegister = () => {
-    if (!user || !templateId) return;
-    registerFingerprint.mutate(
-      { userId: user.id, templateId },
-      {
-        onSuccess: () => {
-          setTemplateId("");
-          onOpenChange(false);
+  const handleRegister = async () => {
+    if (!user) return;
+
+    if (!isBiometricSupported()) {
+      toast({
+        title: "Not Supported",
+        description: "Your device doesn't support fingerprint authentication. Please use a device with a built-in fingerprint sensor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+      setStatus("scanning");
+      
+      // Trigger Windows Hello / fingerprint sensor
+      const credential = await registerFingerprint(user.id, user.fullName);
+      
+      const credentialId = bufferToBase64(credential.rawId);
+      
+      // Save to database
+      registerFingerprintMutation.mutate(
+        { 
+          userId: user.id, 
+          templateId: credentialId,
+          publicKey: credential.id, // Store the credential ID
+          credentialType: "webauthn"
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            setStatus("success");
+            setTimeout(() => {
+              onOpenChange(false);
+              setStatus("idle");
+            }, 2000);
+          },
+          onError: (error) => {
+            setStatus("error");
+            toast({
+              title: "Registration Failed",
+              description: error.message,
+              variant: "destructive",
+            });
+            setTimeout(() => setStatus("idle"), 2000);
+          },
+        }
+      );
+    } catch (error: any) {
+      setStatus("error");
+      toast({
+        title: "Fingerprint Scan Failed",
+        description: error.message || "Failed to capture fingerprint. Please try again.",
+        variant: "destructive",
+      });
+      setTimeout(() => setStatus("idle"), 2000);
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   return (
@@ -41,34 +91,56 @@ export function FingerprintModal({ user, open, onOpenChange }: FingerprintModalP
         </DialogHeader>
         
         <div className="py-6 text-center space-y-4">
-          <div className="w-24 h-24 mx-auto bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
-            <Fingerprint className="w-12 h-12 text-primary" />
+          <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center ${
+            status === "scanning" ? "bg-primary/10 animate-pulse" :
+            status === "success" ? "bg-green-100 dark:bg-green-900" :
+            status === "error" ? "bg-red-100 dark:bg-red-900" :
+            "bg-primary/10"
+          }`}>
+            {status === "success" ? (
+              <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400" />
+            ) : status === "error" ? (
+              <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
+            ) : (
+              <Fingerprint className={`w-12 h-12 text-primary ${status === "scanning" ? "animate-pulse" : ""}`} />
+            )}
           </div>
           
           <div className="text-sm text-muted-foreground">
             Registering for: <span className="font-bold text-foreground">{user?.fullName}</span>
           </div>
 
-          <p className="text-xs text-muted-foreground px-4">
-            In a real scenario, this would trigger the physical scanner. For now, enter a simulated Template ID.
-          </p>
+          {status === "idle" && (
+            <p className="text-xs text-muted-foreground px-4">
+              Click the button below to scan your fingerprint using your laptop's built-in sensor (Windows Hello).
+            </p>
+          )}
 
-          <div className="space-y-2 text-left">
-            <Label>Fingerprint Template ID</Label>
-            <Input 
-              value={templateId} 
-              onChange={(e) => setTemplateId(e.target.value)} 
-              placeholder="e.g. FPRINT_12345"
-            />
-          </div>
+          {status === "scanning" && (
+            <p className="text-sm font-medium text-primary">
+              Please place your finger on the sensor...
+            </p>
+          )}
+
+          {status === "success" && (
+            <p className="text-sm font-medium text-green-600 dark:text-green-400">
+              Fingerprint registered successfully!
+            </p>
+          )}
+
+          {status === "error" && (
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              Failed to register fingerprint
+            </p>
+          )}
 
           <Button 
             onClick={handleRegister} 
-            disabled={!templateId || registerFingerprint.isPending} 
+            disabled={isScanning || status === "success"} 
             className="w-full"
           >
-            {registerFingerprint.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Fingerprint Data
+            {isScanning && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {status === "success" ? "Registered!" : "Scan Fingerprint"}
           </Button>
         </div>
       </DialogContent>
