@@ -27,6 +27,13 @@ export async function registerFingerprint(
   const challenge = new Uint8Array(32);
   crypto.getRandomValues(challenge);
 
+  // Convert userId to Uint8Array (browser-compatible)
+  const userIdString = userId.toString();
+  const userIdBytes = new Uint8Array(userIdString.length);
+  for (let i = 0; i < userIdString.length; i++) {
+    userIdBytes[i] = userIdString.charCodeAt(i);
+  }
+
   const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
     challenge,
     rp: {
@@ -34,7 +41,7 @@ export async function registerFingerprint(
       id: window.location.hostname,
     },
     user: {
-      id: new Uint8Array(Buffer.from(userId.toString())),
+      id: userIdBytes,
       name: userName,
       displayName: userName,
     },
@@ -43,9 +50,10 @@ export async function registerFingerprint(
       { alg: -257, type: "public-key" }, // RS256
     ],
     authenticatorSelection: {
-      authenticatorAttachment: "platform", // Use built-in authenticator (fingerprint sensor)
-      requireResidentKey: false,
-      userVerification: "required",
+      authenticatorAttachment: "platform", // Force built-in authenticator (fingerprint sensor)
+      residentKey: "required", // Force platform storage
+      requireResidentKey: true, // Legacy support
+      userVerification: "required", // Require biometric/PIN verification
     },
     timeout: 60000,
     attestation: "none",
@@ -83,6 +91,7 @@ export async function authenticateFingerprint(
     challenge,
     timeout: 60000,
     userVerification: "required",
+    rpId: window.location.hostname,
     ...(credentialId && {
       allowCredentials: [{
         id: base64ToBuffer(credentialId),

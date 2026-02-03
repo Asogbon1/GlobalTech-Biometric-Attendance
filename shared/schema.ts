@@ -29,8 +29,6 @@ export const fingerprints = pgTable("fingerprints", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   templateId: text("template_id").notNull().unique(), // ID from fingerprint SDK or WebAuthn credential ID
-  publicKey: text("public_key"), // For WebAuthn credentials (optional)
-  credentialType: text("credential_type").notNull().default("webauthn"), // 'webauthn' | 'hardware'
   createdAt: timestamp("created_at").defaultNow(),
 });
 

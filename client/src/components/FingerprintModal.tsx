@@ -45,8 +45,6 @@ export function FingerprintModal({ user, open, onOpenChange }: FingerprintModalP
         { 
           userId: user.id, 
           templateId: credentialId,
-          publicKey: credential.id, // Store the credential ID
-          credentialType: "webauthn"
         },
         {
           onSuccess: () => {

@@ -185,10 +185,11 @@ export async function registerRoutes(
       const fp = await storage.createFingerprint(input);
       res.status(201).json(fp);
     } catch (err) {
+      console.error("Fingerprint registration error:", err);
       if (err instanceof z.ZodError) {
         res.status(400).json({ message: err.errors[0].message });
       } else {
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ message: err instanceof Error ? err.message : "Internal Server Error" });
       }
     }
   });
