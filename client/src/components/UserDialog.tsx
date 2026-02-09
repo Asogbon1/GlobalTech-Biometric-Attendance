@@ -41,7 +41,13 @@ export function UserDialog() {
   });
 
   const onSubmit = (data: InsertUser) => {
-    createUser.mutate(data, {
+    // Convert empty email string to undefined for proper null handling
+    const userData = {
+      ...data,
+      email: data.email && data.email.trim() !== "" ? data.email : undefined,
+    };
+    
+    createUser.mutate(userData, {
       onSuccess: () => {
         setOpen(false);
         form.reset();

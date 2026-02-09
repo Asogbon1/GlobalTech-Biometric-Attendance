@@ -109,10 +109,11 @@ export async function registerRoutes(
       const user = await storage.createUser(input);
       res.status(201).json(user);
     } catch (err) {
+      console.error("[User Creation Error]", err);
       if (err instanceof z.ZodError) {
         res.status(400).json({ message: err.errors[0].message });
       } else {
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ message: err instanceof Error ? err.message : "Internal Server Error" });
       }
     }
   });
@@ -144,19 +145,32 @@ export async function registerRoutes(
       }
 
       const settings = await storage.getSystemSettings();
-      let action = 'SIGN_IN'; // Default
+      let action: 'SIGN_IN' | 'SIGN_OUT' = 'SIGN_IN'; // Default
 
       if (settings.autoToggleEnabled) {
         const lastLog = await storage.getLastAttendanceLog(user.id);
         if (lastLog && lastLog.action === 'SIGN_IN') {
-          // If already signed in, next action is SIGN_OUT
-          // (assuming they didn't forget to sign out yesterday, but simpler logic for now)
-          
-          // Check if last sign in was today to be safe? 
-          // For now, simple toggle logic as requested.
           action = 'SIGN_OUT';
         }
       }
+
+      // Check if user already performed this action today
+      const todayCount = await storage.getTodayAttendanceCount(user.id, action);
+      console.log(`[Attendance Check] User: ${user.fullName} (ID: ${user.id})`);
+      console.log(`[Attendance Check] Attempting action: ${action}`);
+      console.log(`[Attendance Check] Today's ${action} count: ${todayCount}`);
+      console.log(`[Attendance Check] Current time: ${new Date().toISOString()}`);
+      
+      if (todayCount > 0) {
+        console.log(`[Attendance Check] BLOCKED - User already performed ${action} today`);
+        const actionText = action === 'SIGN_IN' ? 'signed in' : 'signed out';
+        return res.status(400).json({ 
+          message: `You have already ${actionText} today. You can only ${action === 'SIGN_IN' ? 'sign in' : 'sign out'} once per day.`,
+          alreadyRecorded: true
+        });
+      }
+
+      console.log(`[Attendance Check] ALLOWED - Recording ${action}`);
 
       await storage.createAttendanceLog({
         userId: user.id,

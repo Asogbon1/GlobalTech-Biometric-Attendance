@@ -13,28 +13,26 @@ interface StatsCardProps {
 export function StatsCard({ title, value, icon: Icon, trend, trendUp, className }: StatsCardProps) {
   return (
     <div className={cn(
-      "bg-card rounded-xl p-5 border border-border/60 hover:border-border transition-all duration-200",
+      "bg-card rounded-xl p-6 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 h-full",
       className
     )}>
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">{title}</p>
-          <p className="text-2xl font-semibold text-foreground">{value}</p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="p-3 rounded-lg bg-muted/50 text-muted-foreground">
+          <Icon className="w-6 h-6" />
         </div>
-        <div className="p-2.5 rounded-lg bg-muted/50 text-muted-foreground">
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-      {trend && (
-        <div className="mt-3 pt-3 border-t border-border/50">
+        {trend && (
           <span className={cn(
-            "text-xs font-medium",
-            trendUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+            "text-xs font-medium px-2 py-1 rounded-full",
+            trendUp ? "text-green-600 dark:text-green-400 bg-green-500/10" : "text-red-600 dark:text-red-400 bg-red-500/10"
           )}>
-            {trend} from yesterday
+            {trend}
           </span>
-        </div>
-      )}
+        )}
+      </div>
+      <div className="space-y-1">
+        <p className="text-muted-foreground text-sm font-medium">{title}</p>
+        <p className="text-3xl font-bold text-foreground">{value}</p>
+      </div>
     </div>
   );
 }

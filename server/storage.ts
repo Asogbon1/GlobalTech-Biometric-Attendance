@@ -33,6 +33,7 @@ export interface IStorage {
   // Attendance
   getAttendanceLogs(userId?: number, dateStr?: string): Promise<(AttendanceLog & { user: User })[]>;
   getLastAttendanceLog(userId: number): Promise<AttendanceLog | undefined>;
+  getTodayAttendanceCount(userId: number, action: 'SIGN_IN' | 'SIGN_OUT'): Promise<number>;
   createAttendanceLog(log: InsertAttendanceLog): Promise<AttendanceLog>;
   getAttendanceStats(): Promise<AttendanceStats>;
 
@@ -95,8 +96,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await db.insert(users).values(user).returning();
-    return newUser;
+    try {
+      console.log("[Creating User] Input data:", user);
+      const [newUser] = await db.insert(users).values(user).returning();
+      console.log("[Creating User] Success:", newUser);
+      return newUser;
+    } catch (error) {
+      console.error("[Creating User] Database error:", error);
+      throw error;
+    }
   }
 
   async deleteUser(id: number): Promise<void> {
@@ -158,6 +166,26 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(attendanceLogs.timestamp))
       .limit(1);
     return log;
+  }
+
+  async getTodayAttendanceCount(userId: number, action: 'SIGN_IN' | 'SIGN_OUT'): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(attendanceLogs)
+      .where(
+        and(
+          eq(attendanceLogs.userId, userId),
+          eq(attendanceLogs.action, action),
+          sql`${attendanceLogs.timestamp} >= ${today.toISOString()}`,
+          sql`${attendanceLogs.timestamp} < ${tomorrow.toISOString()}`
+        )
+      );
+    
+    return Number(result[0]?.count || 0);
   }
 
   async createAttendanceLog(log: InsertAttendanceLog): Promise<AttendanceLog> {

@@ -41,11 +41,9 @@ export function useCreateUser() {
         credentials: "include",
       });
       if (!res.ok) {
-        if (res.status === 400) {
-          const error = api.users.create.responses[400].parse(await res.json());
-          throw new Error(error.message);
-        }
-        throw new Error("Failed to create user");
+        const errorData = await res.json();
+        console.error("User creation failed:", errorData);
+        throw new Error(errorData.message || "Failed to create user");
       }
       return api.users.create.responses[201].parse(await res.json());
     },
@@ -54,6 +52,7 @@ export function useCreateUser() {
       toast({ title: "Success", description: "User created successfully" });
     },
     onError: (error) => {
+      console.error("User creation error:", error);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });

@@ -43,7 +43,14 @@ export function useVerifyFingerprint() {
         body: JSON.stringify({ templateId }),
         credentials: "include",
       });
+      
       if (res.status === 404) throw new Error("Fingerprint not recognized");
+      if (res.status === 400) {
+        const error = await res.json();
+        const err = new Error(error.message) as any;
+        err.alreadyRecorded = error.alreadyRecorded;
+        throw err;
+      }
       if (!res.ok) throw new Error("Verification failed");
       return api.fingerprints.verify.responses[200].parse(await res.json());
     },
@@ -57,8 +64,11 @@ export function useVerifyFingerprint() {
         className: "bg-green-500 text-white border-none",
       });
     },
-    onError: (error) => {
-      toast({ title: "Scan Failed", description: error.message, variant: "destructive" });
+    onError: (error: any) => {
+      // Don't show toast for already recorded - we'll show a dialog instead
+      if (!error.alreadyRecorded) {
+        toast({ title: "Scan Failed", description: error.message, variant: "destructive" });
+      }
     },
   });
 }

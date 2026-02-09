@@ -24,9 +24,7 @@ export default function RegisterPage() {
   });
 
   const onSubmit = (data: RegisterInput) => {
-    // Remove confirmPassword before sending to API
-    const { confirmPassword, ...registerData } = data;
-    register.mutate(registerData as any);
+    register.mutate(data);
   };
 
   return (
