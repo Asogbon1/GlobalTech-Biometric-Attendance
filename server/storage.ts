@@ -7,7 +7,7 @@ import {
   type SystemSettings, type InsertSystemSettings,
   type AttendanceStats,
   type AdminUser, type InsertAdminUser, type RegisterInput
-} from "@shared/schema.js";
+} from "../shared/schema.js";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 import { subDays } from "date-fns";
 import bcrypt from "bcryptjs";
