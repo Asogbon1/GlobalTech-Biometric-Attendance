@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useUsers, useDeleteUser } from "@/hooks/use-users";
 import { UserDialog } from "@/components/UserDialog";
 import { FingerprintModal } from "@/components/FingerprintModal";
+import { UserProfile } from "@/components/UserProfile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Trash2, Fingerprint, MoreHorizontal } from "lucide-react";
+import { Loader2, Search, Trash2, Fingerprint, MoreHorizontal, Eye } from "lucide-react";
 import { type User } from "@shared/schema";
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ export default function UsersPage() {
   const deleteUser = useDeleteUser();
   const [search, setSearch] = useState("");
   const [fingerprintUser, setFingerprintUser] = useState<User | null>(null);
+  const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const filteredUsers = users?.filter(u => 
@@ -106,6 +108,9 @@ export default function UsersPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setProfileUser(user)}>
+                              <Eye className="mr-2 h-4 w-4" /> View Profile
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setFingerprintUser(user)}>
                               <Fingerprint className="mr-2 h-4 w-4" /> Register Biometrics
                             </DropdownMenuItem>
@@ -132,6 +137,12 @@ export default function UsersPage() {
         user={fingerprintUser} 
         open={!!fingerprintUser} 
         onOpenChange={(open) => !open && setFingerprintUser(null)} 
+      />
+
+      <UserProfile 
+        user={profileUser} 
+        open={!!profileUser} 
+        onOpenChange={(open) => !open && setProfileUser(null)} 
       />
 
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>

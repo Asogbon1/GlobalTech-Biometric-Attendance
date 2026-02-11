@@ -4,21 +4,51 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, Download } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO, isSameDay } from "date-fns";
 
 export default function AttendancePage() {
   const [date, setDate] = useState<string>("");
   const { data: logs, isLoading } = useAttendanceLogs({ date: date || undefined });
 
+  // Group logs by user and date
+  const groupedLogs = logs?.reduce((acc: any, log) => {
+    const logDate = format(parseISO(log.timestamp), "yyyy-MM-dd");
+    const key = `${log.userId}-${logDate}`;
+    
+    if (!acc[key]) {
+      acc[key] = {
+        date: logDate,
+        timestamp: log.timestamp,
+        user: log.user,
+        signIn: null,
+        signOut: null,
+        source: log.source,
+      };
+    }
+    
+    if (log.action === "SIGN_IN") {
+      acc[key].signIn = log.timestamp;
+    } else if (log.action === "SIGN_OUT") {
+      acc[key].signOut = log.timestamp;
+    }
+    
+    return acc;
+  }, {}) || {};
+
+  const attendanceRecords = Object.values(groupedLogs).sort((a: any, b: any) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
   const handleExport = () => {
-    // Mock export functionality
-    if (!logs || logs.length === 0) return;
+    if (attendanceRecords.length === 0) return;
     
     const csvContent = "data:text/csv;charset=utf-8," 
-      + "User,Category,Action,Time,Source\n"
-      + logs.map(log => 
-        `${log.user.fullName},${log.user.category},${log.action},${log.timestamp},${log.source}`
-      ).join("\n");
+      + "Date,User,Category,Sign In,Sign Out,Source\n"
+      + attendanceRecords.map((record: any) => {
+        const signInTime = record.signIn ? format(parseISO(record.signIn), "HH:mm:ss") : "-";
+        const signOutTime = record.signOut ? format(parseISO(record.signOut), "HH:mm:ss") : "Didn't sign out";
+        return `${format(parseISO(record.date), "MMM dd yyyy")},${record.user.fullName},${record.user.category},${signInTime},${signOutTime},${record.source}`;
+      }).join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -69,40 +99,50 @@ export default function AttendancePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Time</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>Sign In</TableHead>
+                  <TableHead>Sign Out</TableHead>
                   <TableHead>Source</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {logs?.length === 0 ? (
+                {attendanceRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-32 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center h-32 text-muted-foreground">
                       No logs found for this period.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  logs?.map((log) => (
-                    <TableRow key={log.id} className="hover:bg-muted/30">
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {log.timestamp ? format(new Date(log.timestamp), "MMM dd, HH:mm:ss") : "-"}
-                      </TableCell>
-                      <TableCell className="font-medium">{log.user.fullName}</TableCell>
-                      <TableCell className="capitalize text-muted-foreground text-sm">{log.user.category}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-bold border ${
-                          log.action === 'SIGN_IN' 
-                            ? 'bg-green-50 text-green-700 border-green-200' 
-                            : 'bg-red-50 text-red-700 border-red-200'
-                        }`}>
-                          {log.action === 'SIGN_IN' ? 'IN' : 'OUT'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground uppercase tracking-wider">{log.source}</TableCell>
-                    </TableRow>
-                  ))
+                  attendanceRecords.map((record: any, idx) => {
+                    const today = new Date();
+                    const recordDate = parseISO(record.date);
+                    const didntSignOut = record.signIn && !record.signOut && !isSameDay(recordDate, today);
+
+                    return (
+                      <TableRow key={idx} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-sm text-muted-foreground">
+                          {format(recordDate, "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell className="font-medium">{record.user.fullName}</TableCell>
+                        <TableCell className="capitalize text-muted-foreground text-sm">{record.user.category}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {record.signIn ? format(parseISO(record.signIn), "HH:mm:ss") : "-"}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {record.signOut ? (
+                            <span className="text-green-600">{format(parseISO(record.signOut), "HH:mm:ss")}</span>
+                          ) : didntSignOut ? (
+                            <span className="text-destructive text-xs">User didn't sign out</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground uppercase tracking-wider">{record.source}</TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

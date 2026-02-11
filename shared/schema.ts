@@ -21,6 +21,10 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   category: text("category").notNull(), // 'student' | 'staff'
   email: text("email").unique(), // Optional, for linkage
+  courseName: text("course_name"), // Course registered for
+  duration: text("duration"), // Duration in months or weeks (e.g., "3 months", "12 weeks")
+  frequency: integer("frequency"), // Times per week (e.g., 2, 3, 4)
+  daysOfWeek: text("days_of_week"), // JSON string of days (e.g., "Monday,Wednesday,Friday")
   createdAt: timestamp("created_at").defaultNow(),
 });
 
