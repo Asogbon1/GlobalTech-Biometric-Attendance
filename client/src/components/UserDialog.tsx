@@ -142,10 +142,7 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="courseName">Course Name (Optional)</Label>
-            <Input id="courseName" {...form.register("courseName")} placeholder="Web Development" />
-          </div>
-*</Label>
+            <Label htmlFor="courseName">Course Name *</Label>
             <Select 
               onValueChange={(val) => form.setValue("courseName", val)}
               value={form.watch("courseName")}
@@ -207,7 +204,10 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label>Days of the Week *sName="flex items-center space-x-2">
+            <Label>Days of the Week *</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {DAYS.map((day) => (
+                <div key={day} className="flex items-center space-x-2">
                   <Checkbox 
                     id={day}
                     checked={selectedDays.includes(day)}
