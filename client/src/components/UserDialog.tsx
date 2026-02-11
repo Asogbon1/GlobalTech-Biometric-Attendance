@@ -110,7 +110,7 @@ export function UserDialog() {
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name *</Label>
+            <Label htmlFor="fullName">Full Name <span className="text-red-500">*</span></Label>
             <Input id="fullName" {...form.register("fullName")} placeholder="John Doe" />
             {form.formState.errors.fullName && (
               <p className="text-xs text-destructive">{form.formState.errors.fullName.message}</p>
@@ -118,7 +118,7 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
+            <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
             <Select 
               onValueChange={(val) => form.setValue("category", val)}
               defaultValue={form.getValues("category")}
@@ -142,7 +142,7 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="courseName">Course Name *</Label>
+            <Label htmlFor="courseName">Course Name <span className="text-red-500">*</span></Label>
             <Select 
               onValueChange={(val) => form.setValue("courseName", val)}
               value={form.watch("courseName")}
@@ -162,7 +162,7 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duration">Duration *</Label>
+            <Label htmlFor="duration">Duration <span className="text-red-500">*</span></Label>
             <Select 
               onValueChange={(val) => form.setValue("duration", val)}
               value={form.watch("duration")}
@@ -182,7 +182,7 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="frequency">Frequency (Times per week) *</Label>
+            <Label htmlFor="frequency">Frequency (Times per week) <span className="text-red-500">*</span></Label>
             <Select 
               onValueChange={(val) => form.setValue("frequency", parseInt(val))}
               value={form.watch("frequency")?.toString()}
@@ -204,7 +204,7 @@ export function UserDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label>Days of the Week *</Label>
+            <Label>Days of the Week <span className="text-red-500">*</span></Label>
             <div className="grid grid-cols-2 gap-2">
               {DAYS.map((day) => (
                 <div key={day} className="flex items-center space-x-2">
