@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import type { Server } from "http";
-import { storage } from "./storage";
-import { api } from "@shared/routes";
+import { storage } from "./storage.js";
+import { api } from "@shared/routes.js";
 import { z } from "zod";
 
 // Authentication middleware
@@ -210,11 +210,16 @@ export async function registerRoutes(
 
   // Attendance Logs
   app.get(api.attendance.list.path, requireAuth, async (req, res) => {
-    const logs = await storage.getAttendanceLogs(
-      req.query.userId ? Number(req.query.userId) : undefined,
-      req.query.date as string
-    );
-    res.json(logs);
+    try {
+      const logs = await storage.getAttendanceLogs(
+        req.query.userId ? Number(req.query.userId) : undefined,
+        req.query.date as string
+      );
+      res.json(logs);
+    } catch (err) {
+      console.error("[Get Attendance Logs Error]", err);
+      res.status(500).json({ message: err instanceof Error ? err.message : "Internal Server Error" });
+    }
   });
   
   app.post(api.attendance.create.path, requireAuth, async (req, res) => {

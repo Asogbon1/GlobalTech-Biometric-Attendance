@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import {
   users, fingerprints, attendanceLogs, systemSettings, adminUsers,
   type User, type InsertUser,
@@ -142,14 +142,18 @@ export class DatabaseStorage implements IStorage {
     if (dateStr) {
       // Very basic date filtering - assumes YYYY-MM-DD
       const startOfDay = new Date(dateStr);
-      startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(dateStr);
-      endOfDay.setHours(23, 59, 59, 999);
       
-      conditions.push(
-        gte(attendanceLogs.timestamp, startOfDay) as any,
-        lte(attendanceLogs.timestamp, endOfDay) as any
-      );
+      // Check if dates are valid
+      if (!isNaN(startOfDay.getTime()) && !isNaN(endOfDay.getTime())) {
+        startOfDay.setHours(0, 0, 0, 0);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        conditions.push(
+          gte(attendanceLogs.timestamp, startOfDay) as any,
+          lte(attendanceLogs.timestamp, endOfDay) as any
+        );
+      }
     }
 
     if (conditions.length > 0) {

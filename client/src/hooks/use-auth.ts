@@ -33,8 +33,17 @@ export function useLogin() {
       });
       
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Login failed");
+        let errorMessage = "Login failed";
+        try {
+          const text = await res.text();
+          if (text) {
+            const error = JSON.parse(text);
+            errorMessage = error.message || errorMessage;
+          }
+        } catch (e) {
+          // Response wasn't valid JSON
+        }
+        throw new Error(errorMessage);
       }
       
       return res.json();
@@ -72,8 +81,17 @@ export function useRegister() {
       });
       
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Registration failed");
+        let errorMessage = "Registration failed";
+        try {
+          const text = await res.text();
+          if (text) {
+            const error = JSON.parse(text);
+            errorMessage = error.message || errorMessage;
+          }
+        } catch (e) {
+          // Response wasn't valid JSON
+        }
+        throw new Error(errorMessage);
       }
       
       return res.json();

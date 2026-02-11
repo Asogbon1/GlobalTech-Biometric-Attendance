@@ -23,3 +23,5 @@ npm-debug.log*
 # Database
 *.db
 *.sqlite
+.vercel
+.env*.local
