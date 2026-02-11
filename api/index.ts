@@ -6,7 +6,7 @@ import { createServer } from "http";
 import { db } from "../server/db.js";
 import {
   users, fingerprints, attendanceLogs, systemSettings, adminUsers,
-} from "../shared/schema";
+} from "../shared/schema.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
 import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
