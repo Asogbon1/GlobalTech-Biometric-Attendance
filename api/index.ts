@@ -164,11 +164,17 @@ app.get(api.users.list.path, requireAuth, async (req, res) => {
 
 app.post(api.users.create.path, requireAuth, async (req, res) => {
   try {
+    console.log("[User Create] Request body:", req.body);
     const input = api.users.create.input.parse(req.body);
+    console.log("[User Create] Validated input:", input);
     const [user] = await db.insert(users).values(input).returning();
+    console.log("[User Create] Created user:", user);
     res.status(201).json(user);
   } catch (err) {
     console.error("[User Creation Error]", err);
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: err.errors[0].message });
+    }
     res.status(500).json({ message: err instanceof Error ? err.message : "Internal Server Error" });
   }
 });
