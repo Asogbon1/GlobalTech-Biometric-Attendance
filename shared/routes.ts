@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertFingerprintSchema, insertAttendanceLogSchema, insertSystemSettingsSchema, users, fingerprints, attendanceLogs, systemSettings, adminUsers, loginSchema, registerSchema } from './schema';
+import { insertUserSchema, insertFingerprintSchema, insertAttendanceLogSchema, insertSystemSettingsSchema, users, fingerprints, attendanceLogs, systemSettings, adminUsers, loginSchema, registerSchema } from './schema.js';
 
 export const errorSchemas = {
   validation: z.object({

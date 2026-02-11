@@ -3,7 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { createServer } from "http";
-import { db } from "../server/db";
+import { db } from "../server/db.js";
 import {
   users, fingerprints, attendanceLogs, systemSettings, adminUsers,
 } from "../shared/schema";
@@ -346,7 +346,7 @@ app.get(api.attendance.stats.path, requireAuth, async (req, res) => {
     let activeStudents = 0;
     let activeStaff = 0;
     
-    for (const userId of signedIn) {
+    for (const userId of Array.from(signedIn)) {
       if (!signedOut.has(userId)) {
         const category = userCategories.get(userId);
         if (category === 'student') activeStudents++;
