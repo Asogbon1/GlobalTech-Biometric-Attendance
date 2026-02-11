@@ -26,11 +26,29 @@ import { Loader2, Plus } from "lucide-react";
 
 const formSchema = insertUserSchema.extend({
   email: z.string().email().optional().or(z.literal("")),
-  courseName: z.string().optional().or(z.literal("")),
-  duration: z.string().optional().or(z.literal("")),
-  frequency: z.number().optional().or(z.literal("")),
-  daysOfWeek: z.string().optional().or(z.literal("")),
+  courseName: z.string().min(1, "Course is required"),
+  duration: z.string().min(1, "Duration is required"),
+  frequency: z.number().min(1, "Frequency is required"),
+  daysOfWeek: z.string().min(1, "Please select at least one day"),
 });
+
+const COURSES = [
+  "Web Development",
+  "Data Analytics",
+  "Mobile App Development",
+  "UI/UX Design",
+  "Cybersecurity",
+  "Cloud Computing",
+  "Machine Learning",
+  "Digital Marketing",
+  "Software Engineering",
+  "Database Administration",
+];
+
+const DURATIONS = Array.from({ length: 24 }, (_, i) => ({
+  value: `${i + 1} month${i === 0 ? '' : 's'}`,
+  label: `${i + 1} Month${i === 0 ? '' : 's'}`,
+}));
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -47,7 +65,7 @@ export function UserDialog() {
       email: "",
       courseName: "",
       duration: "",
-      frequency: undefined,
+      frequency: 2,
       daysOfWeek: "",
     },
   });
@@ -66,10 +84,7 @@ export function UserDialog() {
     const userData = {
       ...data,
       email: data.email && data.email.trim() !== "" ? data.email : undefined,
-      courseName: data.courseName && data.courseName.trim() !== "" ? data.courseName : undefined,
-      duration: data.duration && data.duration.trim() !== "" ? data.duration : undefined,
-      frequency: data.frequency || undefined,
-      daysOfWeek: selectedDays.length > 0 ? selectedDays.join(",") : undefined,
+      daysOfWeek: selectedDays.join(","),
     };
     
     createUser.mutate(userData, {
@@ -130,29 +145,69 @@ export function UserDialog() {
             <Label htmlFor="courseName">Course Name (Optional)</Label>
             <Input id="courseName" {...form.register("courseName")} placeholder="Web Development" />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (Optional)</Label>
-            <Input id="duration" {...form.register("duration")} placeholder="e.g., 3 months, 12 weeks" />
+*</Label>
+            <Select 
+              onValueChange={(val) => form.setValue("courseName", val)}
+              value={form.watch("courseName")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a course" />
+              </SelectTrigger>
+              <SelectContent>
+                {COURSES.map((course) => (
+                  <SelectItem key={course} value={course}>{course}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.courseName && (
+              <p className="text-xs text-destructive">{form.formState.errors.courseName.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="frequency">Frequency (Times per week)</Label>
-            <Input 
-              id="frequency" 
-              type="number" 
-              min="1" 
-              max="7"
-              {...form.register("frequency", { valueAsNumber: true })} 
-              placeholder="e.g., 2, 3, 4" 
-            />
+            <Label htmlFor="duration">Duration *</Label>
+            <Select 
+              onValueChange={(val) => form.setValue("duration", val)}
+              value={form.watch("duration")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[200px]">
+                {DURATIONS.map((dur) => (
+                  <SelectItem key={dur.value} value={dur.value}>{dur.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.duration && (
+              <p className="text-xs text-destructive">{form.formState.errors.duration.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label>Days of the Week</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {DAYS.map((day) => (
-                <div key={day} className="flex items-center space-x-2">
+            <Label htmlFor="frequency">Frequency (Times per week) *</Label>
+            <Select 
+              onValueChange={(val) => form.setValue("frequency", parseInt(val))}
+              value={form.watch("frequency")?.toString()}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select frequency" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} {num === 1 ? 'time' : 'times'} per week
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.frequency && (
+              <p className="text-xs text-destructive">{form.formState.errors.frequency.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Days of the Week *sName="flex items-center space-x-2">
                   <Checkbox 
                     id={day}
                     checked={selectedDays.includes(day)}
