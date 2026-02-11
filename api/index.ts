@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
-import MemoryStore from "memorystore";
+import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
 import { createServer } from "http";
 import { db } from "../server/db.js";
 import {
@@ -15,38 +15,17 @@ import bcrypt from "bcryptjs";
 const app = express();
 const httpServer = createServer(app);
 
-const MemoryStoreSession = MemoryStore(session);
-
-declare module "express-session" {
-  interface SessionData {
-    userId?: number;
-  }
-}
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
+    userId?: number;
   }
 }
 
-// Session configuration
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "biometric-attendance-secret-key-change-in-production",
-    resave: false,
-    saveUninitialized: false,
-    store: new MemoryStoreSession({
-      checkPeriod: 86400000,
-    }),
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-      sameSite: "lax" as const,
-    },
-  })
-);
-
+// Middleware
+app.use(cookieParser());
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -60,10 +39,19 @@ app.use(express.urlencoded({ extended: false }));
 // ===== Inline all routes for serverless =====
 
 function requireAuth(req: Request, res: Response, next: express.NextFunction) {
-  if (!req.session.userId) {
+  const token = req.cookies.auth_token;
+  
+  if (!token) {
     return res.status(401).json({ message: "Unauthorized - Please login" });
   }
-  next();
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    req.userId = decoded.userId;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
 }
 
 // Auth: Register
@@ -91,7 +79,14 @@ app.post(api.auth.register.path, async (req, res) => {
     }).returning();
     
     const { password, ...userWithoutPassword } = newUser;
-    req.session.userId = newUser.id;
+    
+    const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
     
     res.status(201).json({ user: userWithoutPassword, message: "Registration successful" });
   } catch (err) {
@@ -119,7 +114,14 @@ app.post(api.auth.login.path, async (req, res) => {
       return res.status(401).json({ message: "Invalid username or password" });
     }
     
-    req.session.userId = user.id;
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+    
     const { password, ...userWithoutPassword } = user;
     
     res.json({ user: userWithoutPassword, message: "Login successful" });
@@ -135,25 +137,31 @@ app.post(api.auth.login.path, async (req, res) => {
 
 // Auth: Logout
 app.post(api.auth.logout.path, (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: "Failed to logout" });
-    }
-    res.json({ message: "Logged out successfully" });
-  });
+  res.clearCookie('auth_token');
+  res.json({ message: "Logged out successfully" });
 });
 
 // Auth: Me
 app.get(api.auth.me.path, async (req, res) => {
-  if (!req.session.userId) {
+  const token = req.cookies.auth_token;
+  
+  if (!token) {
     return res.status(401).json({ message: "Not authenticated" });
   }
-  const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, req.session.userId));
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, decoded.userId));
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const { password, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
-  const { password, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
 });
 
 // Users
